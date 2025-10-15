@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1096843221541",
+    "project_id": "mindpal-b8d43",
+    "storage_bucket": "mindpal-b8d43.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1096843221541:android:2d5bf544b5e700cde7fdcc",
+        "android_client_info": {
+          "package_name": "com.example.mindpal"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1096843221541-bguqnmknlemsrbima63rp8jv0gdn4v57.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBbQjTq8XXA_nC7L3a21UzpiyX9j0_EPvA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1096843221541-bguqnmknlemsrbima63rp8jv0gdn4v57.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

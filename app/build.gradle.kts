@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -51,6 +52,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.firebase.firestore)
+//    implementation(libs.firebase.database)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -68,18 +71,21 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     // Image loading
-    implementation("io.coil-kt:coil-compose:2.4.0")
+//    implementation("io.coil-kt:coil-compose:2.4.0")
 
     // Lifecycle
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.2")
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.47")
-    ksp("com.google.dagger:hilt-compiler:2.47")
+    implementation(libs.hilt.android.v247)
+    ksp(libs.dagger.hilt.compiler)
 
-    implementation("androidx.compose.ui:ui:1.6.0")
-    implementation("androidx.compose.material:material:1.6.0")
+    implementation(libs.ui)
+    implementation(libs.androidx.material)
 
-    implementation("androidx.navigation:navigation-compose:2.7.0")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
 }

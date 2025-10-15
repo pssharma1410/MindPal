@@ -1,0 +1,203 @@
+package com.example.mindpal.ui.auth
+
+import android.content.Context
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.example.mindpal.R
+
+@Composable
+fun AuthScreen(
+    navController: NavController,
+    viewModel: AuthViewModel,
+    context: Context
+) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    val loginSuccess by viewModel.isLoginSuccess
+    val redirectEmail by viewModel.redirectToRegister
+    val error by viewModel.errorMessage
+
+    // Navigate to Home on login success
+    LaunchedEffect(loginSuccess) {
+        if (loginSuccess) {
+            navController.navigate("home") {
+                popUpTo("login") { inclusive = true }
+            }
+        }
+    }
+
+    // Navigate to RegisterScreen if user not found
+    LaunchedEffect(redirectEmail) {
+        redirectEmail?.let {
+            navController.navigate("register?email=$it") {
+                popUpTo("login") { inclusive = false }
+            }
+            viewModel.resetRedirect()
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(16.dp),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    text = "Welcome Back!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                Text(
+                    text = "Login to continue",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+
+                // Email
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    singleLine = true
+                )
+
+                // Password
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                    trailingIcon = {
+                        Text(
+                            text = if (passwordVisible) "Hide" else "Show",
+                            modifier = Modifier
+                                .clickable { passwordVisible = !passwordVisible }
+                                .padding(end = 8.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 12.sp
+                        )
+                    },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    singleLine = true
+                )
+
+                // Login Button
+                Button(
+                    onClick = { viewModel.signInWithEmail(email, password) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Login")
+                }
+
+                // Register Text
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Don't have an account? ",
+                        color = Color.Gray,
+                        style = TextStyle(fontSize = 12.sp)
+                    )
+                    Text(
+                        text = "Register here",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = TextStyle(fontSize = 12.sp),
+                        modifier = Modifier.clickable {
+                            navController.navigate("register")
+                        }
+                    )
+                }
+
+                // OR Divider
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                ) {
+                    Divider(modifier = Modifier.weight(1f), color = Color.LightGray)
+                    Text(
+                        text = "  OR  ",
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Divider(modifier = Modifier.weight(1f), color = Color.LightGray)
+                }
+
+                // Google sign-in
+                Button(
+                    onClick = { viewModel.signInWithGoogle(context) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_google_logo),
+                        contentDescription = "Google Logo",
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(24.dp)
+                    )
+                    Text("Sign in with Google")
+                }
+
+                // Error Message
+                error?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
+            }
+        }
+    }
+}
