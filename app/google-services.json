@@ -1,33 +1,49 @@
 {
   "project_info": {
-    "project_number": "1096843221541",
-    "project_id": "mindpal-b8d43",
-    "storage_bucket": "mindpal-b8d43.firebasestorage.app"
+    "project_number": "475769241173",
+    "project_id": "mindjournal-ai",
+    "storage_bucket": "mindjournal-ai.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1096843221541:android:2d5bf544b5e700cde7fdcc",
+        "mobilesdk_app_id": "1:475769241173:android:c79dca15a9a49a6f201edc",
         "android_client_info": {
-          "package_name": "com.example.mindpal"
+          "package_name": "com.psgcreations.mindjournalai"
         }
       },
       "oauth_client": [
         {
-          "client_id": "1096843221541-bguqnmknlemsrbima63rp8jv0gdn4v57.apps.googleusercontent.com",
+          "client_id": "475769241173-0shjfmd3ip3k4sevva7n8qmhbgigc61n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.psgcreations.mindjournalai",
+            "certificate_hash": "68e4e0b480fc421090eec8a0527cad52f6e22a9f"
+          }
+        },
+        {
+          "client_id": "475769241173-p7c8i2cgjc8n835a11kqlvlq2scpebma.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.psgcreations.mindjournalai",
+            "certificate_hash": "dd3c44f71ba3fd07ca691232f7f610477c94f44a"
+          }
+        },
+        {
+          "client_id": "475769241173-r8pn4ls0idvl3k8854stpgqdmar8619u.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBbQjTq8XXA_nC7L3a21UzpiyX9j0_EPvA"
+          "current_key": "AIzaSyDFeVN6rjbcM5MQ7AlPAQpxAiZbEYqRl70"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "1096843221541-bguqnmknlemsrbima63rp8jv0gdn4v57.apps.googleusercontent.com",
+              "client_id": "475769241173-r8pn4ls0idvl3k8854stpgqdmar8619u.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

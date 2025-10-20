@@ -1,3 +1,5 @@
+
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,16 +10,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mindpal"
+    namespace = "com.psgcreations.mindjournalai"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.mindpal"
+        applicationId = "com.psgcreations.mindjournalai"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -88,4 +89,10 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+
+    implementation("com.github.AlShevelev:PageTurningLib:11cef6855d3808fd22579d6eb96b6d0eea103e21")
+
 }
