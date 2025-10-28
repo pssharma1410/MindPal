@@ -17,8 +17,8 @@ android {
         applicationId = "com.psgcreations.mindjournalai"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 1004
+        versionName = "1.0.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -29,6 +29,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            ndk.debugSymbolLevel = "SYMBOL_TABLE"
         }
     }
 
@@ -93,6 +94,6 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
 
-    implementation("com.github.AlShevelev:PageTurningLib:11cef6855d3808fd22579d6eb96b6d0eea103e21")
+    implementation(libs.app.update.ktx)
 
 }

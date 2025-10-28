@@ -29,6 +29,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.draw.scale
 import com.psgcreations.mindjournalai.ui.journal.JournalViewModel
+import android.app.Activity
+import androidx.compose.ui.platform.LocalContext
+import com.google.android.play.core.appupdate.AppUpdateManager
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.install.InstallStateUpdatedListener
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.InstallStatus
+import com.google.android.play.core.install.model.UpdateAvailability
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,10 +45,63 @@ fun JournalListScreen(
     navController: NavController,
     viewModel: JournalViewModel
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     val entries by viewModel.entries.collectAsState()
     val creamBg = Color(0xFFFFFBF3)
     val cardBg = Color(0xFFFFFFFF)
     val accent = Color(0xFFF7DFA0)
+
+    val appUpdateManager = remember { AppUpdateManagerFactory.create(context) }
+
+    // Listener for FLEXIBLE update state changes
+    val installStateUpdatedListener = remember {
+        InstallStateUpdatedListener { state ->
+            if (state.installStatus() == InstallStatus.DOWNLOADED) {
+                // Update downloaded! Show snackbar to restart.
+                coroutineScope.launch {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "A new update is ready.",
+                        actionLabel = "Restart",
+                        duration = SnackbarDuration.Indefinite
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        appUpdateManager.completeUpdate()
+                    }
+                }
+            }
+        }
+    }
+
+    // Register and unregister the listener
+    DisposableEffect(appUpdateManager) {
+        appUpdateManager.registerListener(installStateUpdatedListener)
+        onDispose {
+            appUpdateManager.unregisterListener(installStateUpdatedListener)
+        }
+    }
+
+    // Check for update once when the screen is first composed
+    LaunchedEffect(activity) {
+        if (activity == null) return@LaunchedEffect
+
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
+            val isUpdateAvailable = appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
+            val isFlexibleUpdateAllowed = appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
+
+            if (isUpdateAvailable && isFlexibleUpdateAllowed) {
+                // Start the flexible update
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    AppUpdateType.FLEXIBLE,
+                    activity,
+                    0 // Request code can be 0 for flexible updates
+                )
+            }
+        }
+    }
 
     Scaffold(
         containerColor = creamBg,

@@ -23,6 +23,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.psgcreations.mindjournalai.R
+import android.app.Activity
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.install.InstallStateUpdatedListener
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.InstallStatus
+import com.google.android.play.core.install.model.UpdateAvailability
+import kotlinx.coroutines.launch
 
 @Composable
 fun AuthScreen(
@@ -38,6 +45,59 @@ fun AuthScreen(
     val redirectEmail by viewModel.redirectToRegister
     val googleRedirect by viewModel.googleRedirectToRegister
     val error by viewModel.errorMessage
+
+    val activity = context as? Activity
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    // Use the context parameter here
+    val appUpdateManager = remember(context) { AppUpdateManagerFactory.create(context) }
+
+    // Listener for FLEXIBLE update state changes
+    val installStateUpdatedListener = remember {
+        InstallStateUpdatedListener { state ->
+            if (state.installStatus() == InstallStatus.DOWNLOADED) {
+                // Update downloaded! Show snackbar to restart.
+                coroutineScope.launch {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "A new update is ready.",
+                        actionLabel = "Restart",
+                        duration = SnackbarDuration.Indefinite
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        appUpdateManager.completeUpdate()
+                    }
+                }
+            }
+        }
+    }
+
+    // Register and unregister the listener
+    DisposableEffect(appUpdateManager) {
+        appUpdateManager.registerListener(installStateUpdatedListener)
+        onDispose {
+            appUpdateManager.unregisterListener(installStateUpdatedListener)
+        }
+    }
+
+    // Check for update once when the screen is first composed
+    LaunchedEffect(activity) {
+        if (activity == null) return@LaunchedEffect
+
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
+            val isUpdateAvailable = appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
+            val isFlexibleUpdateAllowed = appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
+
+            if (isUpdateAvailable && isFlexibleUpdateAllowed) {
+                // Start the flexible update
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    AppUpdateType.FLEXIBLE,
+                    activity,
+                    0 // Request code can be 0 for flexible updates
+                )
+            }
+        }
+    }
 
     LaunchedEffect(loginSuccess) {
         if (loginSuccess) {
