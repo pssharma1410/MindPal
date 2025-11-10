@@ -107,6 +107,7 @@ fun JournalEntryScreen(
 
     Scaffold(
         containerColor = creamBg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 // CHANGED: Title reflects new/edit mode
@@ -139,7 +140,6 @@ fun JournalEntryScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .background(creamBg)
             // REMOVED: .pointerInput() gesture detector
         ) {
