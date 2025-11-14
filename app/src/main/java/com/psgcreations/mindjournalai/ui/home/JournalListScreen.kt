@@ -105,11 +105,23 @@ fun JournalListScreen(
 
     Scaffold(
         containerColor = creamBg,
+
         topBar = {
             TopAppBar(
-                title = { Text("Journal", style = MaterialTheme.typography.titleLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = creamBg),
-                modifier = Modifier.statusBarsPadding()
+                windowInsets = WindowInsets(0, 0, 0, 0),
+                title = {
+                    Text(
+                        text = "Journal",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = creamBg,
+                    titleContentColor = Color.Black
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
             )
         },
         floatingActionButton = {

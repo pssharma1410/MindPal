@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.ImeAction
 
 // REMOVED: All gesture, animation, and transform imports
@@ -110,8 +111,9 @@ fun JournalEntryScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
-                // CHANGED: Title reflects new/edit mode
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text(if (isNewEntry) "New Entry" else "Entry") },
+
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -136,17 +138,14 @@ fun JournalEntryScreen(
         }
     ) { padding ->
 
-        // --- REFACTORED: Body with HorizontalPager ---
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .padding(padding)
                 .background(creamBg)
-            // REMOVED: .pointerInput() gesture detector
         ) {
 
             if (isNewEntry) {
-                // --- Case 1: NEW ENTRY ---
-                // Show a single, standalone PageSurface that is editable.
                 PageSurface(
                     modifier = Modifier.fillMaxSize(),
                     title = title.text,
@@ -189,6 +188,14 @@ fun JournalEntryScreen(
             // REMOVED: Prev/Next FloatingActionButtons
 
             // Save button logic is now simpler
+
+            val density = LocalDensity.current
+
+            val imePx = WindowInsets.ime.getBottom(density)
+
+            val imeDp = with(density) { imePx.toDp() }
+
+            val basePadding = if(imeDp == 0.dp) 18.dp else 0.dp
             FloatingActionButton(
                 onClick = {
                     val t = title.text.trim()
@@ -217,7 +224,8 @@ fun JournalEntryScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(18.dp)
+                    .padding(bottom = basePadding+imeDp,
+                        end = 18.dp)
             ) {
                 Icon(Icons.Default.Check, contentDescription = "Save")
             }

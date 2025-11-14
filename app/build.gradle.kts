@@ -17,8 +17,8 @@ android {
         applicationId = "com.psgcreations.mindjournalai"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1008
-        versionName = "1.0.8"
+        versionCode = 1100
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
