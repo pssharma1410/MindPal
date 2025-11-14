@@ -17,6 +17,7 @@ import com.psgcreations.mindjournalai.ui.auth.RegisterScreen
 import com.psgcreations.mindjournalai.ui.home.JournalEntryScreen
 import com.psgcreations.mindjournalai.ui.home.JournalListScreen
 import com.psgcreations.mindjournalai.ui.journal.JournalViewModel
+import com.psgcreations.mindjournalai.ui.ocr.OCRMainScreen
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -40,13 +41,7 @@ fun AppNavGraph(
 
         composable(
             route = "register?email={email}",
-            arguments = listOf(
-                navArgument("email") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = ""
-                }
-            )
+            arguments = listOf(navArgument("email") { type = NavType.StringType; nullable = true; defaultValue = "" })
         ) { backStackEntry ->
             val prefilledEmail = backStackEntry.arguments?.getString("email") ?: ""
             val viewModel: AuthViewModel = hiltViewModel()
@@ -58,9 +53,20 @@ fun AppNavGraph(
             JournalListScreen(navController, viewModel)
         }
 
-        composable("journal_add") {
+        // --- MODIFIED: Accept optional 'content' argument for OCR ---
+        composable(
+            route = "journal_add?content={content}",
+            arguments = listOf(
+                navArgument("content") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val initialContent = backStackEntry.arguments?.getString("content")
             val viewModel = hiltViewModel<JournalViewModel>()
-            JournalEntryScreen(navController, viewModel, entryId = null)
+            JournalEntryScreen(navController, viewModel, entryId = null, initialContent = initialContent)
         }
 
         composable(
@@ -71,6 +77,21 @@ fun AppNavGraph(
             val viewModel = hiltViewModel<JournalViewModel>()
             JournalEntryScreen(navController, viewModel, entryId = id)
         }
+
+        // --- ADDED: OCR Camera Route ---
+        composable("ocr_scan") {
+            OCRMainScreen(
+                onTextAccepted = { scannedText ->
+                    // Pass result back to the previous screen (JournalListScreen)
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("ocr_result", scannedText)
+                    navController.popBackStack()
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
-

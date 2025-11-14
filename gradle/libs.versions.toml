@@ -25,6 +25,7 @@ roomRuntime = "2.8.2"
 ui = "1.9.3"
 firebaseDatabase = "22.0.1"
 firebaseFirestore = "26.0.2"
+camera = "1.5.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -62,6 +63,12 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", v
 ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
 firebase-database = { group = "com.google.firebase", name = "firebase-database", version.ref = "firebaseDatabase" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
+camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camera" }
+camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camera" }
+camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camera" }
+camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camera" }
+camera-mlkit-vision = { group = "androidx.camera", name = "camera-mlkit-vision", version.ref = "camera" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

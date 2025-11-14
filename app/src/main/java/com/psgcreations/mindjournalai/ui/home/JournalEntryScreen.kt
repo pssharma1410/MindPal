@@ -1,96 +1,89 @@
 package com.psgcreations.mindjournalai.ui.home
 
-// ADDED: Pager imports
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-// ---
-
-import androidx.compose.foundation.background
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.material.icons.Icons
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import kotlinx.coroutines.launch
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.text.input.TextFieldValue
-import com.psgcreations.mindjournalai.ui.journal.JournalViewModel
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.draw.shadow
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.psgcreations.mindjournalai.ui.journal.JournalViewModel
+import kotlinx.coroutines.launch
 
-// REMOVED: All gesture, animation, and transform imports
-// import androidx.compose.animation.core.Animatable
-// import androidx.compose.animation.core.spring
-// import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-// import androidx.compose.ui.graphics.graphicsLayer
-// import androidx.compose.ui.graphics.TransformOrigin
-// import kotlin.math.absoluteValue
-// import kotlinx.coroutines.Job
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) // ADDED ExperimentalFoundationApi
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun JournalEntryScreen(
     navController: NavController,
     viewModel: JournalViewModel,
-    entryId: Int? = null
+    entryId: Int? = null,
+    initialContent: String? = null
 ) {
-    val creamBg = Color(0xFFFFFBF3)
+    // --- THEME COLORS ---
+    val isDark = isSystemInDarkTheme()
+
+    // Background: Light Cream vs. Deep Warm Charcoal
+    val screenBg = if (isDark) Color(0xFF121212) else Color(0xFFFFFBF3)
+
+    // Paper: White (pops on cream) vs. Lighter Dark Grey (pops on black)
+    val paperBg = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+
+    // Text: Black vs. Off-White
+    val textColor = if (isDark) Color(0xFFE1E1E1) else Color(0xFF1D1B20)
+
+    // Icons: Dark Grey vs. Light Grey
+    val iconColor = if (isDark) Color(0xFFCAC4D0) else Color(0xFF49454F)
+
     val coroutineScope = rememberCoroutineScope()
     val entries by viewModel.entries.collectAsState()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // --- REFACTORED: Pager and State Logic ---
-
-    // True if we are creating a new entry, false if editing existing ones
     val isNewEntry = entryId == null
 
-    // Find the initial page index. If new, default to 0. If editing, find the index of the entryId.
     val initialPageIndex = remember(entries, entryId) {
         if (isNewEntry) 0 else entries.indexOfFirst { it.id == entryId }.coerceAtLeast(0)
     }
 
-    // Standard PagerState. It will be controlled by the HorizontalPager.
     val pagerState = rememberPagerState(
         initialPage = initialPageIndex,
-        pageCount = { if (isNewEntry) 1 else entries.size } // Page count is 1 for new, or all entries
+        pageCount = { if (isNewEntry) 1 else entries.size }
     )
 
-    // Local state for the text fields. This will be updated when the page changes.
     var title by remember { mutableStateOf(TextFieldValue("")) }
-    var content by remember { mutableStateOf(TextFieldValue("")) }
-
-    // This is the ID of the entry currently being viewed, used for saving/deleting.
+    var content by remember { mutableStateOf(TextFieldValue(initialContent ?: "")) }
     var currentVisibleEntryId by remember { mutableStateOf<Int?>(entryId) }
 
-    // This effect updates the text fields when the user swipes to a new page
-    // or when the initial data is loaded.
     LaunchedEffect(pagerState.currentPage, entries, isNewEntry) {
         if (isNewEntry) {
-            // "New Entry" mode: clear fields
             title = TextFieldValue("")
-            content = TextFieldValue("")
+            content = TextFieldValue(initialContent ?: "")
             currentVisibleEntryId = null
         } else if (entries.isNotEmpty()) {
-            // "Edit" mode: load data for the currently visible page
             val index = pagerState.currentPage
             if (index in entries.indices) {
                 val entry = entries[index]
@@ -101,29 +94,27 @@ fun JournalEntryScreen(
         }
     }
 
-    // REMOVED: All custom animation functions (goToIndex, goNext, goPrev)
-    // REMOVED: All animation state (isAnimating, directionForward, animationProgress, dragAccum, dragJob)
-
-    // --- End REFACTORED ---
-
     Scaffold(
-        containerColor = creamBg,
+        containerColor = screenBg,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text(if (isNewEntry) "New Entry" else "Entry") },
-
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = screenBg,
+                    titleContentColor = textColor,
+                    navigationIconContentColor = iconColor,
+                    actionIconContentColor = iconColor
+                ),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    // CHANGED: Delete button only shows in "Edit" mode
                     if (!isNewEntry && entries.isNotEmpty()) {
                         IconButton(onClick = {
-                            // Delete the entry currently visible in the pager
                             val toDelete = entries[pagerState.currentPage]
                             coroutineScope.launch {
                                 viewModel.deleteEntry(toDelete)
@@ -137,42 +128,37 @@ fun JournalEntryScreen(
             )
         }
     ) { padding ->
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(padding)
-                .background(creamBg)
+                .background(screenBg)
         ) {
-
             if (isNewEntry) {
                 PageSurface(
                     modifier = Modifier.fillMaxSize(),
                     title = title.text,
                     content = content.text,
                     showRuled = true,
-                    editable = true, // Always editable
+                    editable = true,
                     titleValue = title,
                     contentValue = content,
                     onTitleChange = { title = it },
-                    onContentChange = { content = it }
+                    onContentChange = { content = it },
+                    backgroundColor = paperBg,
+                    textColor = textColor,
+                    isDark = isDark
                 )
             } else if (entries.isNotEmpty()) {
-                // --- Case 2: EDITING EXISTING ---
-                // Show a Pager with all entries.
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize()
                 ) { pageIndex ->
-
                     val entry = entries[pageIndex]
-                    // The page is only editable if it's the one currently settled by the pager.
                     val isEditable = (pageIndex == pagerState.currentPage)
 
                     PageSurface(
                         modifier = Modifier.fillMaxSize(),
-                        // For non-editable pages, show the raw entry data
-                        // For the editable page, show the text field state
                         title = if (isEditable) title.text else entry.title,
                         content = if (isEditable) content.text else entry.content,
                         showRuled = true,
@@ -180,32 +166,28 @@ fun JournalEntryScreen(
                         titleValue = title,
                         contentValue = content,
                         onTitleChange = { title = it },
-                        onContentChange = { content = it }
+                        onContentChange = { content = it },
+                        backgroundColor = paperBg,
+                        textColor = textColor,
+                        isDark = isDark
                     )
                 }
             }
-            // REMOVED: All the PageSurface composables used for animation
-            // REMOVED: Prev/Next FloatingActionButtons
 
-            // Save button logic is now simpler
-
+            // Save Button Logic
             val density = LocalDensity.current
-
             val imePx = WindowInsets.ime.getBottom(density)
-
             val imeDp = with(density) { imePx.toDp() }
+            val basePadding = if (imeDp == 0.dp) 18.dp else 0.dp
 
-            val basePadding = if(imeDp == 0.dp) 18.dp else 0.dp
             FloatingActionButton(
                 onClick = {
                     val t = title.text.trim()
                     val c = content.text.trim()
                     coroutineScope.launch {
                         if (isNewEntry) {
-                            // Save as new
                             viewModel.addEntry(t, c)
                         } else {
-                            // Update existing. We use the ID we've been tracking.
                             val entryToUpdate = entries.find { it.id == currentVisibleEntryId }
                             entryToUpdate?.let {
                                 viewModel.updateEntry(
@@ -222,23 +204,17 @@ fun JournalEntryScreen(
                     keyboardController?.hide()
                     navController.popBackStack()
                 },
+                containerColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(bottom = basePadding+imeDp,
-                        end = 18.dp)
+                    .padding(bottom = basePadding + imeDp, end = 18.dp)
             ) {
                 Icon(Icons.Default.Check, contentDescription = "Save")
             }
         }
-        // --- End REFACTORED ---
     }
 }
 
-/**
- * PageSurface composable remains unchanged.
- * It's perfect for this use case because its `editable` flag
- * correctly switches between TextField and Text.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PageSurface(
@@ -250,19 +226,34 @@ private fun PageSurface(
     titleValue: TextFieldValue = TextFieldValue(""),
     contentValue: TextFieldValue = TextFieldValue(""),
     onTitleChange: (TextFieldValue) -> Unit = {},
-    onContentChange: (TextFieldValue) -> Unit = {}
+    onContentChange: (TextFieldValue) -> Unit = {},
+    backgroundColor: Color,
+    textColor: Color,
+    isDark: Boolean
 ) {
-    val creamBg = Color(0xFFFFFBF3)
+    // Ruled Lines: Subtle Beige in Light Mode / Subtle Grey in Dark Mode
+    val lineColor = if (isDark) Color(0xFF333333) else Color(0xFFEDE7DC)
+    val placeholderColor = if (isDark) Color(0xFF777777) else Color.Gray
+
+    // Border: Only visible in Dark Mode to separate card from background
+    val borderStroke = if (isDark) BorderStroke(1.dp, Color(0xFF333333)) else null
+
     Box(
         modifier = modifier
             .padding(18.dp)
+            .shadow(
+                elevation = if (isDark) 0.dp else 2.dp, // Shadows look bad in dark mode, remove them
+                shape = MaterialTheme.shapes.medium
+            )
             .clip(MaterialTheme.shapes.medium)
-            .background(creamBg)
-            .shadow(2.dp, MaterialTheme.shapes.medium)
+            .background(backgroundColor)
+            .then(
+                if (borderStroke != null) Modifier.border(borderStroke, MaterialTheme.shapes.medium) else Modifier
+            )
     ) {
-        // ruled background
         val lineHeightSp = 28.sp
-        val lineColor = Color(0xFFEDE7DC)
+
+        // Draw Ruled Lines
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -283,19 +274,17 @@ private fun PageSurface(
                     }
                 }
         )
-        Column(modifier = Modifier
-            .padding(18.dp)
-            .fillMaxSize()
-        ) {
+
+        Column(modifier = Modifier.padding(18.dp).fillMaxSize()) {
             if (editable) {
+                // Title Field
                 OutlinedTextField(
                     value = titleValue,
-                    onValueChange = {onTitleChange(it.copy()) },
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    placeholder = { Text(text = "Title...") },
+                    onValueChange = { onTitleChange(it.copy()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Title...", color = placeholderColor) },
                     singleLine = false,
-                    textStyle = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
+                    textStyle = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = textColor),
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color.Transparent,
@@ -303,20 +292,24 @@ private fun PageSurface(
                         disabledBorderColor = Color.Transparent,
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent
+                        disabledContainerColor = Color.Transparent,
+                        cursorColor = textColor,
+                        selectionColors = TextSelectionColors(
+                            handleColor = textColor,
+                            backgroundColor = textColor.copy(alpha = 0.3f)
+                        )
                     )
                 )
 
                 Spacer(Modifier.height(8.dp))
 
+                // Content Field
                 OutlinedTextField(
                     value = contentValue,
-                    onValueChange = {onContentChange(it.copy()) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    placeholder = { Text(text = "Start writing here...") },
-                    textStyle = TextStyle(fontSize = 16.sp),
+                    onValueChange = { onContentChange(it.copy()) },
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    placeholder = { Text("Start writing here...", color = placeholderColor) },
+                    textStyle = TextStyle(fontSize = 16.sp, color = textColor),
                     maxLines = Int.MAX_VALUE,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Default),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -325,19 +318,24 @@ private fun PageSurface(
                         disabledBorderColor = Color.Transparent,
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent
+                        disabledContainerColor = Color.Transparent,
+                        cursorColor = textColor,
+                        selectionColors = TextSelectionColors(
+                            handleColor = textColor,
+                            backgroundColor = textColor.copy(alpha = 0.3f)
+                        )
                     )
                 )
             } else {
-                // Non-editable preview (used for animated incoming/outgoing pages)
+                // Read-Only View
                 Text(
                     text = if (title.isBlank()) "Untitled" else title,
-                    style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                    style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = textColor)
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = if (content.isBlank()) "Start writing here..." else content,
-                    style = TextStyle(fontSize = 16.sp),
+                    style = TextStyle(fontSize = 16.sp, color = textColor),
                     modifier = Modifier.fillMaxWidth()
                 )
             }

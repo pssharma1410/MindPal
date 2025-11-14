@@ -17,8 +17,8 @@ android {
         applicationId = "com.psgcreations.mindjournalai"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1100
-        versionName = "1.1.0"
+        versionCode = 1101
+        versionName = "1.1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -95,5 +95,16 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.app.update.ktx)
+
+    implementation ("com.google.mlkit:text-recognition:16.0.1")
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.camera.mlkit.vision)
+
+    implementation ("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
+    implementation ("androidx.compose.material:material-icons-extended")
+    implementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
 
 }
