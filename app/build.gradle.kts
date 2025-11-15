@@ -17,8 +17,8 @@ android {
         applicationId = "com.psgcreations.mindjournalai"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1101
-        versionName = "1.1.1"
+        versionCode = 1102
+        versionName = "1.1.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -106,5 +106,6 @@ dependencies {
     implementation ("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
     implementation ("androidx.compose.material:material-icons-extended")
     implementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
+    implementation("com.google.firebase:firebase-messaging:24.0.0")
 
 }

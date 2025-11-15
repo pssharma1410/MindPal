@@ -8,6 +8,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -24,23 +25,29 @@ class AuthRepository @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
 
-    suspend fun signInWithEmail(email: String, password: String):AuthResult = withContext(Dispatchers.IO) {
-        try {
-            firebaseAuth.signInWithEmailAndPassword(email, password).await()
-            AuthResult.Success
-        } catch (e: Exception) {
-            Log.e("SignIn", "Error: ${e.message}")
-            // Check Firebase error type
-            return@withContext when (e) {
-                is com.google.firebase.auth.FirebaseAuthInvalidUserException -> AuthResult.UserNotFound
-                is com.google.firebase.auth.FirebaseAuthInvalidCredentialsException -> AuthResult.UserNotFound
-                else -> AuthResult.Error(e.localizedMessage ?: "Unknown error")
+    suspend fun signInWithEmail(email: String, password: String): AuthResult =
+        withContext(Dispatchers.IO) {
+            try {
+                firebaseAuth.signInWithEmailAndPassword(email, password).await()
+                AuthResult.Success
+            } catch (e: Exception) {
+                Log.e("SignIn", "Error: ${e.message}")
+                // Check Firebase error type
+                return@withContext when (e) {
+                    is com.google.firebase.auth.FirebaseAuthInvalidUserException -> AuthResult.UserNotFound
+                    is com.google.firebase.auth.FirebaseAuthInvalidCredentialsException -> AuthResult.UserNotFound
+                    else -> AuthResult.Error(e.localizedMessage ?: "Unknown error")
+                }
             }
         }
-    }
 
     // Register user with additional fields (Name + Mobile)
-    suspend fun registerUser(name: String, email: String, password: String, mobile: String): Boolean =
+    suspend fun registerUser(
+        name: String,
+        email: String,
+        password: String,
+        mobile: String
+    ): Boolean =
         withContext(Dispatchers.IO) {
             try {
                 val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
@@ -95,7 +102,8 @@ class AuthRepository @Inject constructor(
             val firebaseCredential =
                 com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
             val authResult = firebaseAuth.signInWithCredential(firebaseCredential).await()
-            val uid = authResult.user?.uid ?: return@withContext AuthResult.Error("Firebase sign-in failed")
+            val uid = authResult.user?.uid
+                ?: return@withContext AuthResult.Error("Firebase sign-in failed")
 
             // Check Firestore for existing user with this email
             val userQuery = firestore.collection("users")
@@ -130,4 +138,29 @@ class AuthRepository @Inject constructor(
         val digest = md.digest(bytes)
         return digest.fold("") { str, it -> str + "%02x".format(it) }
     }
+
+    fun retrieveAndSaveFcmToken() {
+        val uid = firebaseAuth.currentUser?.uid ?: return
+
+        // 1. Get the Token (Existing code)
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                firestore.collection("users").document(uid)
+                    .update("fcmToken", token)
+            }
+        }
+
+        // 2. NEW: Subscribe to "daily_reminder" topic
+        // This groups all your users into one "bucket" for messaging
+        FirebaseMessaging.getInstance().subscribeToTopic("daily_reminder")
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("FCM", "Subscribed to daily_reminder topic")
+                } else {
+                    Log.e("FCM", "Subscription failed")
+                }
+            }
+    }
+
 }

@@ -1,6 +1,11 @@
 package com.psgcreations.mindjournalai.ui.auth
 
+import android.Manifest // IMPORT THIS
 import android.content.Context
+import android.content.pm.PackageManager // IMPORT THIS
+import android.os.Build // IMPORT THIS
+import androidx.activity.compose.rememberLauncherForActivityResult // IMPORT THIS
+import androidx.activity.result.contract.ActivityResultContracts // IMPORT THIS
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,6 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat // IMPORT THIS
 import androidx.navigation.NavController
 import com.psgcreations.mindjournalai.R
 import android.app.Activity
@@ -52,6 +58,29 @@ fun AuthScreen(
     // Use the context parameter here
     val appUpdateManager = remember(context) { AppUpdateManagerFactory.create(context) }
 
+    // --- NOTIFICATION PERMISSION LOGIC START ---
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                // Permission granted
+            }
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+    // --- NOTIFICATION PERMISSION LOGIC END ---
+
     // Listener for FLEXIBLE update state changes
     val installStateUpdatedListener = remember {
         InstallStateUpdatedListener { state ->
@@ -71,6 +100,7 @@ fun AuthScreen(
         }
     }
 
+    // ... (Rest of your code remains exactly the same)
     // Register and unregister the listener
     DisposableEffect(appUpdateManager) {
         appUpdateManager.registerListener(installStateUpdatedListener)

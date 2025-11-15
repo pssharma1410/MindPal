@@ -1,7 +1,12 @@
 package com.psgcreations.mindjournalai.ui.home
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -27,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.install.InstallStateUpdatedListener
@@ -50,12 +56,41 @@ fun JournalListScreen(
     val coroutineScope = rememberCoroutineScope()
     val entries by viewModel.entries.collectAsState()
 
+    // --- NOTIFICATION PERMISSION LOGIC START ---
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                // Permission granted
+            }
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        // 1. Request Permissions
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
+        // 2. SYNC TOKEN (Add this line)
+        // This ensures the backend has the token even if user auto-logged in
+        viewModel.checkFcmToken()
+    }
+    // --- NOTIFICATION PERMISSION LOGIC END ---
+
     // --- DARK MODE THEME COLORS ---
     val isDark = isSystemInDarkTheme()
 
     // Background: Cream vs Deep Charcoal
     val screenBg = if (isDark) Color(0xFF121212) else Color(0xFFFFFBF3)
 
+    // ... (Rest of your code remains exactly the same)
     // Card: White vs Dark Grey Surface
     val cardBg = if (isDark) Color(0xFF1C1B1F) else Color(0xFFFFFFFF)
 
@@ -125,7 +160,7 @@ fun JournalListScreen(
     }
 
     Scaffold(
-        containerColor = screenBg, // Dynamic Background
+        containerColor = screenBg,
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
@@ -137,8 +172,8 @@ fun JournalListScreen(
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = screenBg, // Dynamic TopBar
-                    titleContentColor = textPrimary // Dynamic Title
+                    containerColor = screenBg,
+                    titleContentColor = textPrimary
                 )
             )
         },
@@ -182,7 +217,6 @@ fun JournalListScreen(
                 items(entries, key = { it.id }) { entry ->
                     var pressed by remember { mutableStateOf(false) }
                     val scale by animateFloatAsState(if (pressed) 0.995f else 1f)
-                    // Reduce elevation in Dark Mode as shadows are invisible
                     val elevation by animateDpAsState(if (pressed) 2.dp else if (isDark) 0.dp else 6.dp)
 
                     Surface(
@@ -191,7 +225,7 @@ fun JournalListScreen(
                             .scale(scale)
                             .shadow(elevation, RoundedCornerShape(12.dp))
                             .clip(RoundedCornerShape(12.dp)),
-                        color = cardBg, // Dynamic Card Color
+                        color = cardBg,
                         shape = RoundedCornerShape(12.dp),
                         onClick = { navController.navigate("journal_edit/${entry.id}") },
                         tonalElevation = elevation
@@ -214,7 +248,7 @@ fun JournalListScreen(
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    color = textPrimary // Dynamic Text
+                                    color = textPrimary
                                 )
                                 Spacer(Modifier.height(6.dp))
                                 Text(
@@ -222,7 +256,7 @@ fun JournalListScreen(
                                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
                                     maxLines = 3,
                                     overflow = TextOverflow.Ellipsis,
-                                    color = textSecondary // Dynamic Text
+                                    color = textSecondary
                                 )
                                 Spacer(Modifier.height(10.dp))
                                 val formatted = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault()).format(Date(entry.timestamp))
