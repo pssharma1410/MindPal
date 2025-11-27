@@ -1,5 +1,3 @@
-
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,6 +5,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics") version "3.0.6" apply false
 }
 
 android {
@@ -17,8 +16,8 @@ android {
         applicationId = "com.psgcreations.mindjournalai"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1102
-        versionName = "1.1.2"
+        versionCode = 1300
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -96,16 +95,17 @@ dependencies {
 
     implementation(libs.app.update.ktx)
 
-    implementation ("com.google.mlkit:text-recognition:16.0.1")
+    implementation (libs.text.recognition)
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
     implementation(libs.camera.mlkit.vision)
 
-    implementation ("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
-    implementation ("androidx.compose.material:material-icons-extended")
-    implementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
-    implementation("com.google.firebase:firebase-messaging:24.0.0")
+    implementation (libs.androidx.lifecycle.runtime.compose)
+    implementation (libs.androidx.material.icons.extended)
+    implementation(libs.androidx.concurrent.futures.ktx)
+    implementation(libs.firebase.messaging)
+    implementation("com.google.firebase:firebase-crashlytics")
 
 }

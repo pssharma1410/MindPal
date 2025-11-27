@@ -1,10 +1,7 @@
 package com.psgcreations.mindjournalai.ui.navigation
 
 import android.content.Context
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -24,7 +21,6 @@ import com.google.firebase.auth.FirebaseAuth
 fun AppNavGraph(
     navController: NavHostController,
     context: Context,
-    innerPadding: PaddingValues
 ) {
     val firebaseAuth = FirebaseAuth.getInstance()
     val startDestination = if (firebaseAuth.currentUser != null) "journal_list" else "login"
@@ -32,7 +28,6 @@ fun AppNavGraph(
     NavHost(
         navController = navController,
         startDestination = startDestination,
-        modifier = Modifier.padding(innerPadding)
     ) {
         composable("login") {
             val viewModel: AuthViewModel = hiltViewModel()

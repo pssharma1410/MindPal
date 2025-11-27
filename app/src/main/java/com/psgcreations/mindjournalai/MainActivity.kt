@@ -2,13 +2,17 @@ package com.psgcreations.mindjournalai
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
@@ -27,23 +31,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MindPalTheme {
-                // 2. Initialize it inside setContent
                 navController = rememberNavController()
-
-                Scaffold(
-                    modifier = Modifier.fillMaxSize()
-                ) { innerPadding ->
-
-                    AppNavGraph(
-                        navController = navController,
-                        context = this,
-                        innerPadding = innerPadding
-                    )
-
-                    // 3. Handle "Cold Start" (App was killed)
-                    LaunchedEffect(Unit) {
-                        handleNotificationNavigation(intent)
-                    }
+                AppNavGraph(
+                    navController = navController,
+                    context = this,
+                )
+                LaunchedEffect(Unit) {
+                    handleNotificationNavigation(intent)
                 }
             }
         }
@@ -52,9 +46,7 @@ class MainActivity : ComponentActivity() {
     // 4. Handle "Warm Start" (App was in background)
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Update the activity's intent to the new one
         setIntent(intent)
-        // Trigger navigation manually
         handleNotificationNavigation(intent)
     }
 
@@ -73,6 +65,16 @@ class MainActivity : ComponentActivity() {
                     intent.removeExtra("screen")
                 }
             }
+        }
+    }
+
+    @Composable
+    fun CrashTestScreen() {
+        Button(onClick = {
+            // 🚨 THIS IS THE CRASH LINE
+            throw RuntimeException("Test Crash - Crashlytics Setup Verification")
+        }) {
+            Text("Click to Crash App")
         }
     }
 }

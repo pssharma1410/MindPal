@@ -1,41 +1,46 @@
 package com.psgcreations.mindjournalai.ui.home
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
+import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.psgcreations.mindjournalai.room.JournalEntry
 import com.psgcreations.mindjournalai.ui.journal.JournalViewModel
+import com.psgcreations.mindjournalai.util.Mood
 import kotlinx.coroutines.launch
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournalEntryScreen(
     navController: NavController,
@@ -43,302 +48,364 @@ fun JournalEntryScreen(
     entryId: Int? = null,
     initialContent: String? = null
 ) {
-    // --- THEME COLORS ---
-    val isDark = isSystemInDarkTheme()
-
-    // Background: Light Cream vs. Deep Warm Charcoal
-    val screenBg = if (isDark) Color(0xFF121212) else Color(0xFFFFFBF3)
-
-    // Paper: White (pops on cream) vs. Lighter Dark Grey (pops on black)
-    val paperBg = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
-
-    // Text: Black vs. Off-White
-    val textColor = if (isDark) Color(0xFFE1E1E1) else Color(0xFF1D1B20)
-
-    // Icons: Dark Grey vs. Light Grey
-    val iconColor = if (isDark) Color(0xFFCAC4D0) else Color(0xFF49454F)
-
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val entries by viewModel.entries.collectAsState()
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
+    val listState = rememberLazyListState()
+
+    var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
+    var currentMood by remember { mutableStateOf(Mood.NEUTRAL.emoji) }
+
+    var existingEntry by remember { mutableStateOf<JournalEntry?>(null) }
+    var isLoading by remember { mutableStateOf(entryId != null) }
 
     val isNewEntry = entryId == null
+    val contentFocusRequester = remember { FocusRequester() }
 
-    val initialPageIndex = remember(entries, entryId) {
-        if (isNewEntry) 0 else entries.indexOfFirst { it.id == entryId }.coerceAtLeast(0)
-    }
-
-    val pagerState = rememberPagerState(
-        initialPage = initialPageIndex,
-        pageCount = { if (isNewEntry) 1 else entries.size }
-    )
-
-    var title by remember { mutableStateOf(TextFieldValue("")) }
-    var content by remember { mutableStateOf(TextFieldValue(initialContent ?: "")) }
-    var currentVisibleEntryId by remember { mutableStateOf<Int?>(entryId) }
-
-    LaunchedEffect(pagerState.currentPage, entries, isNewEntry) {
-        if (isNewEntry) {
-            title = TextFieldValue("")
-            content = TextFieldValue(initialContent ?: "")
-            currentVisibleEntryId = null
-        } else if (entries.isNotEmpty()) {
-            val index = pagerState.currentPage
-            if (index in entries.indices) {
-                val entry = entries[index]
-                title = TextFieldValue(entry.title)
-                content = TextFieldValue(entry.content)
-                currentVisibleEntryId = entry.id
+    // Load entry logic (UNCHANGED)
+    LaunchedEffect(entryId) {
+        if (!isNewEntry && entryId != null) {
+            val entry = viewModel.getEntryById(entryId)
+            existingEntry = entry
+            entry?.let {
+                title = it.title
+                content = it.content
+                currentMood = it.mood
             }
+            isLoading = false
+        }
+
+        initialContent?.let {
+            content = URLDecoder.decode(it, StandardCharsets.UTF_8.toString())
+            coroutineScope.launch {
+                contentFocusRequester.requestFocus()
+                // Scroll to content input field if initial content is present
+                // Removed listState.scrollToItem(2) as it might break with new items
+            }
+        }
+
+        if (entryId == null && initialContent == null) {
+            isLoading = false
         }
     }
 
+    // Save entry logic (UNCHANGED)
+    val saveEntry: () -> Unit = {
+        coroutineScope.launch {
+            if (title.isBlank() && content.isBlank() && isNewEntry) {
+                navController.popBackStack()
+                return@launch
+            }
+
+            if (isNewEntry) {
+                viewModel.addEntry(title.trim(), content.trim(), currentMood)
+            } else {
+                existingEntry?.let { entry ->
+                    if (entry.title != title.trim() ||
+                        entry.content != content.trim() ||
+                        entry.mood != currentMood
+                    ) {
+                        viewModel.updateEntry(
+                            entry.copy(
+                                title = title.trim(),
+                                content = content.trim(),
+                                mood = currentMood,
+                            )
+                        )
+                    }
+                }
+            }
+            navController.popBackStack()
+        }
+    }
+
+    // Share entry logic (UNCHANGED)
+    val shareEntry: () -> Unit = {
+        val entryText = "${title.ifBlank { "Untitled Note" }}\n\n$content"
+        val shareIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, entryText)
+            type = "text/plain"
+        }
+        context.startActivity(Intent.createChooser(shareIntent, "Share Note via"))
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     Scaffold(
-        containerColor = screenBg,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text(if (isNewEntry) "New Entry" else "Entry") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = screenBg,
-                    titleContentColor = textColor,
-                    navigationIconContentColor = iconColor,
-                    actionIconContentColor = iconColor
-                ),
+                title = { Text(if (isNewEntry) "New Entry" else "Edit Entry") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    if (!isNewEntry && entries.isNotEmpty()) {
-                        IconButton(onClick = {
-                            val toDelete = entries[pagerState.currentPage]
-                            coroutineScope.launch {
-                                viewModel.deleteEntry(toDelete)
-                            }
-                            navController.popBackStack()
-                        }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                    AnimatedVisibility(
+                        visible = !isNewEntry && existingEntry != null,
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        IconButton(onClick = shareEntry) {
+                            Icon(Icons.Default.Share, contentDescription = "Share Entry")
                         }
+                    }
+
+                    IconButton(onClick = saveEntry) {
+                        Icon(Icons.Default.Done, contentDescription = "Save Entry")
                     }
                 }
             )
         }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(padding)
-                .background(screenBg)
-        ) {
-            if (isNewEntry) {
-                PageSurface(
-                    modifier = Modifier.fillMaxSize(),
-                    title = title.text,
-                    content = content.text,
-                    showRuled = true,
-                    editable = true,
-                    titleValue = title,
-                    contentValue = content,
-                    onTitleChange = { title = it },
-                    onContentChange = { content = it },
-                    backgroundColor = paperBg,
-                    textColor = textColor,
-                    isDark = isDark
-                )
-            } else if (entries.isNotEmpty()) {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { pageIndex ->
-                    val entry = entries[pageIndex]
-                    val isEditable = (pageIndex == pagerState.currentPage)
+    ) { paddingValues ->
 
-                    PageSurface(
-                        modifier = Modifier.fillMaxSize(),
-                        title = if (isEditable) title.text else entry.title,
-                        content = if (isEditable) content.text else entry.content,
-                        showRuled = true,
-                        editable = isEditable,
-                        titleValue = title,
-                        contentValue = content,
-                        onTitleChange = { title = it },
-                        onContentChange = { content = it },
-                        backgroundColor = paperBg,
-                        textColor = textColor,
-                        isDark = isDark
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues), // Apply padding here
+            state = listState
+        ) {
+
+            // 🔥 NEW: Metadata Section (Created At / Updated At)
+            if (!isNewEntry && existingEntry != null) {
+                item {
+                    EntryMetadata(existingEntry!!)
+                }
+            }
+
+            item {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    MoodPicker(
+                        selectedMood = currentMood,
+                        onMoodSelected = { currentMood = it }
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
+            item {
+                TitleInputField(
+                    value = title,
+                    onValueChange = { title = it }
+                )
+                Divider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
+
+            // ⭐ WORD COUNT TOP RIGHT (UNCHANGED)
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        text = "${content.length} Characters",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Save Button Logic
-            val density = LocalDensity.current
-            val imePx = WindowInsets.ime.getBottom(density)
-            val imeDp = with(density) { imePx.toDp() }
-            val basePadding = if (imeDp == 0.dp) 18.dp else 0.dp
+            item {
+                ContentInputField(
+                    value = content,
+                    onValueChange = { content = it },
+                    focusRequester = contentFocusRequester
+                )
+            }
+            item {
+                // Ensure space below content when keyboard is active
+                Spacer(
+                    modifier = Modifier
+                        .fillParentMaxHeight(0.5f)
+                        .imePadding()
+                )
+            }
 
-            FloatingActionButton(
-                onClick = {
-                    val t = title.text.trim()
-                    val c = content.text.trim()
-                    coroutineScope.launch {
-                        if (isNewEntry) {
-                            viewModel.addEntry(t, c)
-                        } else {
-                            val entryToUpdate = entries.find { it.id == currentVisibleEntryId }
-                            entryToUpdate?.let {
-                                viewModel.updateEntry(
-                                    it.copy(
-                                        title = t,
-                                        content = c,
-                                        timestamp = System.currentTimeMillis()
-                                    )
-                                )
-                            }
-                        }
-                    }
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                    navController.popBackStack()
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = basePadding + imeDp, end = 18.dp)
-            ) {
-                Icon(Icons.Default.Check, contentDescription = "Save")
+        }
+
+    }
+}
+
+// 🔥 NEW: Composable to display Created and Edited times
+@Composable
+fun EntryMetadata(entry: JournalEntry) {
+    val formatter = remember { SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault()) }
+    val createdDate = remember { formatter.format(Date(entry.createdAt)) }
+    val isEdited = entry.createdAt != entry.updatedAt
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.End
+    ) {
+        // Created At
+        Text(
+            text = "Created: $createdDate",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
+        // Updated At (only show if different)
+        if (isEdited) {
+            val updatedDate = remember { formatter.format(Date(entry.updatedAt)) }
+            Text(
+                text = "Edited: $updatedDate",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary // Highlight edited time
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+fun TitleInputField(
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = {
+            Text(
+                "Untitled Note",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent,
+            errorContainerColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            errorIndicatorColor = Color.Transparent,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+        )
+    )
+}
+
+@Composable
+fun ContentInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    focusRequester: FocusRequester
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text("What's on your mind today? Start writing...") },
+        textStyle = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 400.dp)
+            .focusRequester(focusRequester)
+            .padding(horizontal = 16.dp),
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent,
+            errorContainerColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            errorIndicatorColor = Color.Transparent,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+        )
+    )
+}
+
+@Composable
+fun MoodPicker(
+    selectedMood: String,
+    onMoodSelected: (String) -> Unit
+) {
+    val allMoods = remember { Mood.entries.toList() }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "How are you feeling?",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
+        )
+
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(end = 16.dp)
+        ) {
+            items(allMoods) { mood ->
+                val isSelected = mood.emoji == selectedMood
+                MoodItem(
+                    mood = mood,
+                    isSelected = isSelected,
+                    onClick = { onMoodSelected(mood.emoji) }
+                )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PageSurface(
-    modifier: Modifier = Modifier,
-    title: String,
-    content: String,
-    showRuled: Boolean = true,
-    editable: Boolean = false,
-    titleValue: TextFieldValue = TextFieldValue(""),
-    contentValue: TextFieldValue = TextFieldValue(""),
-    onTitleChange: (TextFieldValue) -> Unit = {},
-    onContentChange: (TextFieldValue) -> Unit = {},
-    backgroundColor: Color,
-    textColor: Color,
-    isDark: Boolean
+fun MoodItem(
+    mood: Mood,
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
-    // Ruled Lines: Subtle Beige in Light Mode / Subtle Grey in Dark Mode
-    val lineColor = if (isDark) Color(0xFF333333) else Color(0xFFEDE7DC)
-    val placeholderColor = if (isDark) Color(0xFF777777) else Color.Gray
+    val bgColor =
+        if (isSelected) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surfaceContainerHigh
 
-    // Border: Only visible in Dark Mode to separate card from background
-    val borderStroke = if (isDark) BorderStroke(1.dp, Color(0xFF333333)) else null
+    val contentColor =
+        if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+        else MaterialTheme.colorScheme.onSurface
 
-    Box(
-        modifier = modifier
-            .padding(18.dp)
-            .shadow(
-                elevation = if (isDark) 0.dp else 2.dp, // Shadows look bad in dark mode, remove them
-                shape = MaterialTheme.shapes.medium
-            )
-            .clip(MaterialTheme.shapes.medium)
-            .background(backgroundColor)
-            .then(
-                if (borderStroke != null) Modifier.border(borderStroke, MaterialTheme.shapes.medium) else Modifier
-            )
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(64.dp)
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp)
     ) {
-        val lineHeightSp = 28.sp
-
-        // Draw Ruled Lines
         Box(
             modifier = Modifier
-                .matchParentSize()
-                .drawBehind {
-                    if (showRuled) {
-                        val lineHeightPx = lineHeightSp.toPx()
-                        var y = lineHeightPx + 24.dp.toPx()
-                        val stroke = 1.dp.toPx()
-                        while (y < size.height) {
-                            drawLine(
-                                color = lineColor,
-                                start = Offset(x = 0f, y = y),
-                                end = Offset(x = size.width, y = y),
-                                strokeWidth = stroke
-                            )
-                            y += lineHeightPx
-                        }
-                    }
-                }
-        )
-
-        Column(modifier = Modifier.padding(18.dp).fillMaxSize()) {
-            if (editable) {
-                // Title Field
-                OutlinedTextField(
-                    value = titleValue,
-                    onValueChange = { onTitleChange(it.copy()) },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Title...", color = placeholderColor) },
-                    singleLine = false,
-                    textStyle = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = textColor),
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        disabledBorderColor = Color.Transparent,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        cursorColor = textColor,
-                        selectionColors = TextSelectionColors(
-                            handleColor = textColor,
-                            backgroundColor = textColor.copy(alpha = 0.3f)
-                        )
-                    )
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                // Content Field
-                OutlinedTextField(
-                    value = contentValue,
-                    onValueChange = { onContentChange(it.copy()) },
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    placeholder = { Text("Start writing here...", color = placeholderColor) },
-                    textStyle = TextStyle(fontSize = 16.sp, color = textColor),
-                    maxLines = Int.MAX_VALUE,
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Default),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        disabledBorderColor = Color.Transparent,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        cursorColor = textColor,
-                        selectionColors = TextSelectionColors(
-                            handleColor = textColor,
-                            backgroundColor = textColor.copy(alpha = 0.3f)
-                        )
-                    )
-                )
-            } else {
-                // Read-Only View
-                Text(
-                    text = if (title.isBlank()) "Untitled" else title,
-                    style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = textColor)
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = if (content.isBlank()) "Start writing here..." else content,
-                    style = TextStyle(fontSize = 16.sp, color = textColor),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+                .size(48.dp)
+                .background(bgColor, CircleShape)
+                .wrapContentSize(Alignment.Center)
+        ) {
+            Text(
+                text = mood.emoji,
+                fontSize = 28.sp,
+                color = Color.Black
+            )
         }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = mood.name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() },
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor,
+            maxLines = 1,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+        )
     }
 }

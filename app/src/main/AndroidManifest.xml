@@ -21,7 +21,8 @@
             android:name="com.psgcreations.mindjournalai.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.MindPal">
+            android:theme="@style/Theme.MindPal"
+            android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -37,5 +38,4 @@
             </intent-filter>
         </service>
     </application>
-
 </manifest>

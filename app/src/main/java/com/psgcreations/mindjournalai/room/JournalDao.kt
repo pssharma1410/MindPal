@@ -15,7 +15,8 @@ interface JournalDao {
     @Delete
     suspend fun delete(entry: JournalEntry)
 
-    @Query("SELECT * FROM journal_entries ORDER BY timestamp DESC")
+    // 🔥 MODIFIED: Sort by createdAt DESC to order by creation date
+    @Query("SELECT * FROM journal_entries ORDER BY createdAt DESC")
     fun getAll(): Flow<List<JournalEntry>>
 
     @Query("SELECT * FROM journal_entries WHERE id = :id")
