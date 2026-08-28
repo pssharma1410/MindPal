@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,21 +10,46 @@ plugins {
     id("com.google.firebase.crashlytics") version "3.0.6" apply false
 }
 
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+
+fun keystoreProperty(name: String): String =
+    keystoreProperties.getProperty(name)
+        ?: throw GradleException("Missing '$name' in keystore.properties")
+
 android {
     namespace = "com.psgcreations.mindjournalai"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.psgcreations.mindjournalai"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1300
         versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                storeFile = rootProject.file(keystoreProperty("storeFile"))
+                storePassword = keystoreProperty("storePassword")
+                keyAlias = keystoreProperty("keyAlias")
+                keyPassword = keystoreProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
